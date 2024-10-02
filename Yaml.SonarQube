@@ -1,0 +1,129 @@
+name: SonarQube Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sonarcloud:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+
+    - name: Cache SonarQube packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Install Maven dependencies
+      run: mvn install -DskipTests
+
+    - name: SonarQube Scan
+      run: mvn clean verify sonar:sonar \
+        -Dsonar.projectKey=<your_project_key> \
+        -Dsonar.organization=<your_organization_key> \
+        -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+    - name: Upload report to GitHub
+      uses: actions/upload-artifact@v2
+      with:
+        name: sonar-report
+        path: target/sonar/report
+Key Notes:
+Replace <your_project_key> and <your_organization_key> with your SonarCloud project and organization key.
+You must set up SONAR_TOKEN in your repository's GitHub secrets to authenticate with SonarCloud.
+
+
+
+
+
+You said:
+now write one without sonar cloud
+ChatGPT said:
+ChatGPT
+Here’s a GitHub Action YAML file that performs a SonarQube scan using a self-hosted SonarQube server instead of SonarCloud:
+
+yaml
+Copy code
+name: SonarQube Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sonar-scanner:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v1
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+
+    - name: Cache SonarQube packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    - name: Install Maven dependencies
+      run: mvn install -DskipTests
+
+    - name: Download and Install SonarQube Scanner
+      run: |
+        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip
+        unzip sonar-scanner-cli-4.6.2.2472-linux.zip
+        mv sonar-scanner-4.6.2.2472-linux sonar-scanner
+
+    - name: Run SonarQube Scan
+      run: ./sonar-scanner/bin/sonar-scanner \
+        -Dsonar.projectKey=<your_project_key> \
+        -Dsonar.host.url=<your_sonarqube_url> \
+        -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+    - name: Upload report to GitHub
+      uses: actions/upload-artifact@v2
+      with:
+        name: sonar-report
+        path: target/sonar/report
